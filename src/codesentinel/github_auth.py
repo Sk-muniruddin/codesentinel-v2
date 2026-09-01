@@ -1,5 +1,6 @@
 import os
 import time
+from pathlib import Path
 
 import jwt
 import requests
@@ -10,7 +11,9 @@ GITHUB_API_URL = "https://api.github.com"
 
 def create_app_jwt() -> str:
     app_id = os.environ["GITHUB_APP_ID"]
-    private_key = os.environ["GITHUB_PRIVATE_KEY"]
+    private_key_path = os.environ["GITHUB_PRIVATE_KEY_PATH"]
+
+    private_key = Path(private_key_path).read_text()
 
     now = int(time.time())
 
