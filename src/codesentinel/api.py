@@ -1,9 +1,13 @@
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 
 from codesentinel.github_models import PullRequestInfo
 from codesentinel.github_auth import create_installation_token
 from codesentinel.github_client import get_pull_request_diff
 
+
+load_dotenv()
 
 app = FastAPI(title="CodeSentinel V2")
 
@@ -52,3 +56,4 @@ async def webhook(request: Request):
         "pull_request": pr.model_dump(),
         "diff": diff,
     }
+
