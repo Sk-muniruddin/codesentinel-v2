@@ -1,20 +1,28 @@
 from openai import OpenAI
-
 from codesentinel.models import CodeReview
 
 
 SYSTEM_PROMPT = """
 You are CodeSentinel, an expert software code reviewer.
 
-Review the provided code carefully.
+Review the provided GitHub pull request diff carefully.
 
-Identify:
+Identify only meaningful:
 - correctness issues
 - error handling problems
 - security issues
 - maintainability problems
 
-Only report meaningful issues.
+Do not report harmless style changes.
+
+For every finding provide:
+- severity
+- category
+- file
+- line
+- problem
+- impact
+- recommendation
 """
 
 
@@ -23,23 +31,17 @@ def review_code(
     model: str,
     code: str,
 ) -> CodeReview:
+    prompt = f"""
+{SYSTEM_PROMPT}
+
+Review this GitHub pull request diff:
+
+{code}
+"""
 
     response = client.responses.parse(
         model=model,
-        input=[
-            {
-                "role": "system",
-                "content": SYSTEM_PROMPT,
-            },
-            {
-                "role": "user",
-                "content": f"""
-Review this Python code:
-
-{code}
-""",
-            },
-        ],
+        input=prompt,
         text_format=CodeReview,
     )
 

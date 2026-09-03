@@ -1,15 +1,22 @@
+import os
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
+from azure.ai.projects import AIProjectClient
+from azure.identity import DefaultAzureCredential
 
 from codesentinel.github_models import PullRequestInfo
 from codesentinel.github_auth import create_installation_token
 from codesentinel.github_client import get_pull_request_diff
+from codesentinel.reviewer import review_code
 
 
 load_dotenv()
 
 app = FastAPI(title="CodeSentinel V2")
+
+PROJECT_ENDPOINT = os.environ["AZURE_AI_PROJECT_ENDPOINT"]
+MODEL_DEPLOYMENT = os.environ["MODEL_DEPLOYMENT"]
 
 
 @app.get("/health")
@@ -45,15 +52,30 @@ async def webhook(request: Request):
         pull_request_number=pr.pull_request_number,
     )
 
+    project = AIProjectClient(
+        endpoint=PROJECT_ENDPOINT,
+        credential=DefaultAzureCredential(),
+    )
+
+    openai = project.get_openai_client()
+
+    review = review_code(
+        client=openai,
+        model=MODEL_DEPLOYMENT,
+        code=diff,
+    )
+
     print("PR Information:")
     print(pr.model_dump_json(indent=2))
 
     print("\nPR Diff:")
     print(diff)
 
-    return {
-        "status": "received",
-        "pull_request": pr.model_dump(),
-        "diff": diff,
-    }
+    print("\nCode Review:")
+    print(review.model_dump_json(indent=2))
 
+    return {
+        "status": "reviewed",
+        "pull_request": pr.model_dump(),
+        "review": review.model_dump(),
+    }
