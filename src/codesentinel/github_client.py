@@ -1,3 +1,5 @@
+import base64
+
 import requests
 
 
@@ -30,3 +32,69 @@ def get_pull_request_diff(
     response.raise_for_status()
 
     return response.text
+
+
+def get_repository_tree(
+    token: str,
+    owner: str,
+    repo: str,
+    branch: str = "main",
+) -> list[dict]:
+
+    url = (
+        f"{GITHUB_API_URL}/repos/"
+        f"{owner}/{repo}/git/trees/{branch}"
+    )
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+    }
+
+    response = requests.get(
+        url,
+        headers=headers,
+        params={"recursive": "1"},
+        timeout=30,
+    )
+
+    response.raise_for_status()
+
+    return response.json()["tree"]
+
+
+def get_repository_file(
+    token: str,
+    owner: str,
+    repo: str,
+    path: str,
+    branch: str = "main",
+) -> str:
+
+    url = (
+        f"{GITHUB_API_URL}/repos/"
+        f"{owner}/{repo}/contents/{path}"
+    )
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+    }
+
+    response = requests.get(
+        url,
+        headers=headers,
+        params={"ref": branch},
+        timeout=30,
+    )
+
+    response.raise_for_status()
+
+    data = response.json()
+
+    if data.get("type") != "file":
+        raise ValueError(f"GitHub path is not a file: {path}")
+
+    content = data.get("content", "")
+
+    return base64.b64decode(content).decode("utf-8")
