@@ -5,9 +5,17 @@ from fastapi import FastAPI, Request
 from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 
-from codesentinel.github_models import PullRequestInfo
+from codesentinel.blob_storage import create_blob_service_client
+from codesentinel.github_models import (
+    PullRequestInfo,
+    RepositoryPushInfo,
+)
 from codesentinel.github_auth import create_installation_token
 from codesentinel.github_client import get_pull_request_diff
+from codesentinel.repository_sync import (
+    delete_repository_files,
+    update_repository_files,
+)
 from codesentinel.reviewer import review_code
 
 
@@ -28,6 +36,104 @@ def health():
 async def webhook(request: Request):
     payload = await request.json()
 
+    event_type = request.headers.get("X-GitHub-Event")
+
+    if event_type == "push":
+        return await handle_push_event(payload)
+
+    if event_type == "pull_request":
+        return await handle_pull_request_event(payload)
+
+    return {
+        "status": "ignored",
+        "event": event_type,
+    }
+
+
+async def handle_push_event(
+    payload: dict,
+):
+    if "installation" not in payload:
+        return {
+            "status": "ignored",
+            "reason": "missing installation information",
+        }
+
+    repository = payload["repository"]
+
+    branch = payload["ref"].removeprefix("refs/heads/")
+
+    if branch != "main":
+        return {
+            "status": "ignored",
+            "reason": "push was not to main",
+            "branch": branch,
+        }
+
+    push = RepositoryPushInfo(
+        installation_id=payload["installation"]["id"],
+        repository_id=repository["id"],
+        repository_owner=repository["owner"]["login"],
+        repository_name=repository["name"],
+        branch=branch,
+        before_sha=payload["before"],
+        after_sha=payload["after"],
+        added=payload.get("added", []),
+        modified=payload.get("modified", []),
+        removed=payload.get("removed", []),
+    )
+
+    token = create_installation_token(
+        push.installation_id
+    )
+
+    blob_service_client = create_blob_service_client()
+
+    files_to_update = [
+        *push.added,
+        *push.modified,
+    ]
+
+    updated_files = update_repository_files(
+        blob_service_client=blob_service_client,
+        github_token=token,
+        installation_id=push.installation_id,
+        repository_id=push.repository_id,
+        owner=push.repository_owner,
+        repo=push.repository_name,
+        files=files_to_update,
+        branch=push.branch,
+    )
+
+    deleted_files = delete_repository_files(
+        blob_service_client=blob_service_client,
+        installation_id=push.installation_id,
+        repository_id=push.repository_id,
+        files=push.removed,
+        branch=push.branch,
+    )
+
+    print("Repository push synchronization:")
+    print(push.model_dump_json(indent=2))
+
+    print(f"Updated files: {updated_files}")
+    print(f"Deleted files: {deleted_files}")
+
+    return {
+        "status": "synchronized",
+        "event": "push",
+        "repository": push.repository_name,
+        "branch": push.branch,
+        "updated_files": updated_files,
+        "deleted_files": deleted_files,
+        "before_sha": push.before_sha,
+        "after_sha": push.after_sha,
+    }
+
+
+async def handle_pull_request_event(
+    payload: dict,
+):
     pr = PullRequestInfo(
         action=payload["action"],
         installation_id=payload["installation"]["id"],
