@@ -179,7 +179,7 @@ wheels = [
 [[package]]
 name = "codesentinel"
 version = "2.0.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "azure-ai-projects" },
     { name = "azure-identity" },
