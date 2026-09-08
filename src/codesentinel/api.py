@@ -14,6 +14,7 @@ from codesentinel.github_auth import create_installation_token
 from codesentinel.github_client import get_pull_request_diff
 from codesentinel.repository_sync import (
     delete_repository_files,
+    sync_repository_to_blob,
     update_repository_files,
 )
 from codesentinel.reviewer import review_code
@@ -38,6 +39,9 @@ async def webhook(request: Request):
 
     event_type = request.headers.get("X-GitHub-Event")
 
+    if event_type == "installation":
+        return await handle_installation_event(payload)
+
     if event_type == "push":
         return await handle_push_event(payload)
 
@@ -47,6 +51,81 @@ async def webhook(request: Request):
     return {
         "status": "ignored",
         "event": event_type,
+    }
+
+
+async def handle_installation_event(
+    payload: dict,
+):
+    action = payload.get("action")
+
+    if action != "created":
+        return {
+            "status": "ignored",
+            "event": "installation",
+            "action": action,
+        }
+
+    installation = payload["installation"]
+
+    installation_id = installation["id"]
+
+    repositories = payload.get(
+        "repositories",
+        []
+    )
+
+    if not repositories:
+        return {
+            "status": "synchronized",
+            "event": "installation",
+            "action": action,
+            "installation_id": installation_id,
+            "repositories": 0,
+            "uploaded_files": 0,
+        }
+
+    token = create_installation_token(
+        installation_id
+    )
+
+    blob_service_client = create_blob_service_client()
+
+    repository_results = []
+
+    for repository in repositories:
+        repository_id = repository["id"]
+        repository_name = repository["name"]
+        repository_owner = repository["owner"]["login"]
+
+        uploaded_files = sync_repository_to_blob(
+            blob_service_client=blob_service_client,
+            github_token=token,
+            installation_id=installation_id,
+            repository_id=repository_id,
+            owner=repository_owner,
+            repo=repository_name,
+            branch="main",
+        )
+
+        repository_results.append(
+            {
+                "repository_id": repository_id,
+                "repository": repository_name,
+                "uploaded_files": uploaded_files,
+            }
+        )
+
+    print("GitHub App installation synchronization:")
+    print(f"Installation ID: {installation_id}")
+    print(f"Repositories synchronized: {len(repository_results)}")
+
+    return {
+        "status": "synchronized",
+        "event": "installation",
+        "action": action,
+        "installation_id": installation_id,
+        "repositories": repository_results,
     }
 
 
