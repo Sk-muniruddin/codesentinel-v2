@@ -149,6 +149,21 @@ async def handle_push_event(
             "branch": branch,
         }
 
+    added_files = []
+    modified_files = []
+    removed_files = []
+
+    for commit in payload.get("commits", []):
+        added_files.extend(
+            commit.get("added", [])
+        )
+        modified_files.extend(
+            commit.get("modified", [])
+        )
+        removed_files.extend(
+            commit.get("removed", [])
+        )
+
     push = RepositoryPushInfo(
         installation_id=payload["installation"]["id"],
         repository_id=repository["id"],
@@ -157,9 +172,9 @@ async def handle_push_event(
         branch=branch,
         before_sha=payload["before"],
         after_sha=payload["after"],
-        added=payload.get("added", []),
-        modified=payload.get("modified", []),
-        removed=payload.get("removed", []),
+        added=added_files,
+        modified=modified_files,
+        removed=removed_files,
     )
 
     token = create_installation_token(
