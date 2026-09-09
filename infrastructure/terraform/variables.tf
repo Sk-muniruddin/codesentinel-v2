@@ -25,15 +25,19 @@ variable "storage_account_name" {
   }
 }
 
-variable "function_app_name" {
-  description = "Globally unique Azure Function App name."
+variable "search_service_name" {
+  description = "Globally unique Azure AI Search service name."
   type        = string
-}
 
-variable "function_service_plan_name" {
-  description = "Azure Function App Service Plan name."
-  type        = string
-  default     = "asp-codesentinel"
+  validation {
+    condition = (
+      length(var.search_service_name) >= 2 &&
+      length(var.search_service_name) <= 60 &&
+      can(regex("^[a-z0-9-]+$", var.search_service_name))
+    )
+
+    error_message = "Search service name must be 2-60 characters and contain only lowercase letters, numbers, and hyphens."
+  }
 }
 
 variable "environment" {

@@ -22,3 +22,13 @@ output "blob_container_name" {
   description = "Private Blob container used for repository synchronization."
   value       = azurerm_storage_container.repositories.name
 }
+
+output "search_service_name" {
+  description = "Azure AI Search service name."
+  value       = azurerm_search_service.codesentinel.name
+}
+
+output "search_service_endpoint" {
+  description = "Azure AI Search service endpoint."
+  value       = azurerm_search_service.codesentinel.endpoint
+}
