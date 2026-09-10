@@ -6,6 +6,7 @@ from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 
 from codesentinel.blob_storage import create_blob_service_client
+from codesentinel.foundry_iq import retrieve_repository_context
 from codesentinel.github_models import (
     PullRequestInfo,
     RepositoryPushInfo,
@@ -252,6 +253,22 @@ async def handle_pull_request_event(
         pull_request_number=pr.pull_request_number,
     )
 
+    retrieval_query = f"""
+Find repository code, functions, classes, tests, configuration,
+interfaces, and dependencies that are directly relevant to
+reviewing this GitHub pull request.
+
+Prioritize files related to the files and code changed by the PR.
+
+Pull request diff:
+
+{diff}
+"""
+
+    repository_context = retrieve_repository_context(
+        retrieval_query
+    )
+
     project = AIProjectClient(
         endpoint=PROJECT_ENDPOINT,
         credential=DefaultAzureCredential(),
@@ -263,6 +280,7 @@ async def handle_pull_request_event(
         client=openai,
         model=MODEL_DEPLOYMENT,
         code=diff,
+        repository_context=repository_context,
     )
 
     print("PR Information:")
@@ -270,6 +288,9 @@ async def handle_pull_request_event(
 
     print("\nPR Diff:")
     print(diff)
+
+    print("\nRepository Context:")
+    print(repository_context)
 
     print("\nCode Review:")
     print(review.model_dump_json(indent=2))
