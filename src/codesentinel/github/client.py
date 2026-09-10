@@ -93,8 +93,46 @@ def get_repository_file(
     data = response.json()
 
     if data.get("type") != "file":
-        raise ValueError(f"GitHub path is not a file: {path}")
+        raise ValueError(
+            f"GitHub path is not a file: {path}"
+        )
 
     content = data.get("content", "")
 
     return base64.b64decode(content).decode("utf-8")
+
+
+def create_pull_request_review(
+    token: str,
+    owner: str,
+    repo: str,
+    pull_request_number: int,
+    body: str,
+) -> dict:
+
+    url = (
+        f"{GITHUB_API_URL}/repos/"
+        f"{owner}/{repo}/pulls/"
+        f"{pull_request_number}/reviews"
+    )
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+    }
+
+    payload = {
+        "body": body,
+        "event": "COMMENT",
+    }
+
+    response = requests.post(
+        url,
+        headers=headers,
+        json=payload,
+        timeout=30,
+    )
+
+    response.raise_for_status()
+
+    return response.json()
