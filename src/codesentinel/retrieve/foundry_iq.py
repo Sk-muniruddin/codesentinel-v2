@@ -11,9 +11,7 @@ from azure.search.documents.knowledgebases.models import (
 )
 from dotenv import load_dotenv
 
-
 load_dotenv()
-
 
 SEARCH_ENDPOINT = os.environ["AZURE_SEARCH_ENDPOINT"]
 KNOWLEDGE_BASE_NAME = os.environ["FOUNDRY_KNOWLEDGE_BASE_NAME"]

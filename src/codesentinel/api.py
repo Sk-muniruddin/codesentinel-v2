@@ -8,7 +8,10 @@ from codesentinel.github.models import (
     RepositoryPushInfo,
 )
 from codesentinel.github.auth import create_installation_token
-from codesentinel.github.client import get_pull_request_diff
+from codesentinel.github.client import (
+    get_pull_request_diff,
+    create_pull_request_review,
+)
 from codesentinel.sync.repository_sync import (
     delete_repository_files,
     sync_repository_to_blob,
@@ -256,13 +259,7 @@ async def handle_pull_request_event(
 
     # Retrieve repository knowledge before running the Agent.
     retrieval_query = f"""
-Find repository code, functions, classes, tests, configuration,
-interfaces, and dependencies that are directly relevant to
-reviewing this GitHub pull request.
-
-Prioritize files related to the files and code changed by the PR.
-
-Pull request diff:
+Find existing repository code related to the files changed in this pull request.
 
 {diff}
 """
@@ -323,6 +320,39 @@ Return the final review using the required CodeReview structure.
         review_input
     )
 
+    # Post the completed review to the GitHub Pull Request.
+    review_body = (
+        "## CodeSentinel Code Review\n\n"
+        f"### Summary\n\n{review.summary}\n"
+    )
+
+    if review.findings:
+        review_body += "\n### Findings\n\n"
+
+        for finding in review.findings:
+            review_body += (
+                f"**{finding.severity.upper()} — "
+                f"{finding.category}**\n\n"
+                f"- **File:** `{finding.file}`\n"
+                f"- **Line:** {finding.line}\n"
+                f"- **Problem:** {finding.problem}\n"
+                f"- **Impact:** {finding.impact}\n"
+                f"- **Recommendation:** {finding.recommendation}\n\n"
+            )
+    else:
+        review_body += (
+            "\n### Findings\n\n"
+            "No meaningful issues were identified.\n"
+        )
+
+    github_review = create_pull_request_review(
+        token=token,
+        owner=pr.repository_owner,
+        repo=pr.repository_name,
+        pull_request_number=pr.pull_request_number,
+        body=review_body,
+    )
+
     print("PR Information:")
     print(pr.model_dump_json(indent=2))
 
@@ -335,10 +365,20 @@ Return the final review using the required CodeReview structure.
     print("\nCode Review:")
     print(review.model_dump_json(indent=2))
 
+    print("\nGitHub Review:")
+    print(
+        f"Review posted successfully. "
+        f"Review ID: {github_review.get('id')}"
+    )
+
     return {
         "status": "reviewed",
         "pull_request": pr.model_dump(),
         "review": review.model_dump(),
+        "github_review": {
+            "id": github_review.get("id"),
+            "html_url": github_review.get("html_url"),
+        },
     }
 
 
