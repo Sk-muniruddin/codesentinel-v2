@@ -1,6 +1,9 @@
 import os
 
-from agents import set_default_openai_client
+from agents import (
+    set_default_openai_client,
+    set_tracing_disabled,
+)
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
@@ -21,3 +24,5 @@ def configure_azure_openai_client() -> None:
         client,
         use_for_tracing=False,
     )
+
+    set_tracing_disabled(True)
