@@ -1,9 +1,5 @@
-import os
-
-from dotenv import load_dotenv
 from fastapi import FastAPI, Request
-from azure.ai.projects import AIProjectClient
-from azure.identity import DefaultAzureCredential
+from dotenv import load_dotenv
 
 from codesentinel.blob_storage import create_blob_service_client
 from codesentinel.foundry_iq import retrieve_repository_context
@@ -18,15 +14,13 @@ from codesentinel.repository_sync import (
     sync_repository_to_blob,
     update_repository_files,
 )
-from codesentinel.reviewer import review_code
+from codesentinel.runner import run_code_review
 
 
 load_dotenv()
 
-app = FastAPI(title="CodeSentinel V2")
 
-PROJECT_ENDPOINT = os.environ["AZURE_AI_PROJECT_ENDPOINT"]
-MODEL_DEPLOYMENT = os.environ["MODEL_DEPLOYMENT"]
+app = FastAPI(title="CodeSentinel V2")
 
 
 @app.get("/health")
@@ -119,7 +113,10 @@ async def handle_installation_event(
 
     print("GitHub App installation synchronization:")
     print(f"Installation ID: {installation_id}")
-    print(f"Repositories synchronized: {len(repository_results)}")
+    print(
+        f"Repositories synchronized: "
+        f"{len(repository_results)}"
+    )
 
     return {
         "status": "synchronized",
@@ -141,7 +138,9 @@ async def handle_push_event(
 
     repository = payload["repository"]
 
-    branch = payload["ref"].removeprefix("refs/heads/")
+    branch = payload["ref"].removeprefix(
+        "refs/heads/"
+    )
 
     if branch != "main":
         return {
@@ -158,9 +157,11 @@ async def handle_push_event(
         added_files.extend(
             commit.get("added", [])
         )
+
         modified_files.extend(
             commit.get("modified", [])
         )
+
         removed_files.extend(
             commit.get("removed", [])
         )
@@ -253,6 +254,7 @@ async def handle_pull_request_event(
         pull_request_number=pr.pull_request_number,
     )
 
+    # Retrieve repository knowledge before running the Agent.
     retrieval_query = f"""
 Find repository code, functions, classes, tests, configuration,
 interfaces, and dependencies that are directly relevant to
@@ -269,18 +271,56 @@ Pull request diff:
         retrieval_query
     )
 
-    project = AIProjectClient(
-        endpoint=PROJECT_ENDPOINT,
-        credential=DefaultAzureCredential(),
-    )
+    # Build the complete input that will be given to the Agent.
+    review_input = f"""
+Review this GitHub Pull Request.
 
-    openai = project.get_openai_client()
+====================
+PULL REQUEST
+====================
 
-    review = review_code(
-        client=openai,
-        model=MODEL_DEPLOYMENT,
-        code=diff,
-        repository_context=repository_context,
+Repository:
+{pr.repository_owner}/{pr.repository_name}
+
+Pull Request:
+#{pr.pull_request_number}
+
+Title:
+{pr.title}
+
+Description:
+{pr.description or ""}
+
+====================
+PULL REQUEST DIFF
+====================
+
+{diff}
+
+====================
+REPOSITORY KNOWLEDGE
+====================
+
+{repository_context}
+
+====================
+REVIEW REQUIREMENTS
+====================
+
+Use the repository knowledge to understand the existing
+implementation before reviewing the Pull Request.
+
+The Pull Request diff is the code being reviewed.
+
+The repository knowledge is reference context and is not
+part of the Pull Request.
+
+Return the final review using the required CodeReview structure.
+"""
+
+    # Runner executes the CodeSentinel Agent.
+    review = await run_code_review(
+        review_input
     )
 
     print("PR Information:")
