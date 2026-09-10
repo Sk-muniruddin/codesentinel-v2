@@ -49,7 +49,6 @@ def create_repository_index() -> SearchIndex:
             type=SearchFieldDataType.String,
             key=True,
             filterable=True,
-            sortable=True,
         ),
         SimpleField(
             name="parent_id",
@@ -73,7 +72,6 @@ def create_repository_index() -> SearchIndex:
             name="file_path",
             type=SearchFieldDataType.String,
             filterable=True,
-            sortable=True,
         ),
         SearchableField(
             name="file_name",
@@ -149,7 +147,7 @@ def create_repository_index() -> SearchIndex:
         name=INDEX_NAME,
         description=(
             "CodeSentinel repository knowledge index containing "
-            "repository code chunks, metadata, and vector embeddings "
+            "repository chunks, metadata, and vector embeddings "
             "for pull request context retrieval."
         ),
         fields=fields,
@@ -167,7 +165,7 @@ def create_or_update_repository_index() -> None:
 
     print(
         f"Search index '{result.name}' "
-        "created successfully."
+        "updated successfully."
     )
 
 
