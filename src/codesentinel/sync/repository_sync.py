@@ -1,6 +1,6 @@
 from azure.storage.blob import BlobServiceClient
 
-from codesentinel.github_client import (
+from codesentinel.github.client import (
     get_repository_file,
     get_repository_tree,
 )

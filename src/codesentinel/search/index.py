@@ -44,11 +44,12 @@ def create_search_index_client() -> SearchIndexClient:
 
 def create_repository_index() -> SearchIndex:
     fields = [
-        SimpleField(
+        SearchableField(
             name="chunk_id",
             type=SearchFieldDataType.String,
             key=True,
             filterable=True,
+            analyzer_name="keyword",
         ),
         SimpleField(
             name="parent_id",

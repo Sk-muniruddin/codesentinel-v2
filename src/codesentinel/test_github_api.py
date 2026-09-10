@@ -2,9 +2,9 @@ import os
 
 from dotenv import load_dotenv
 
-from codesentinel.blob_storage import create_blob_service_client
-from codesentinel.github_auth import create_installation_token
-from codesentinel.repository_sync import sync_repository_to_blob
+from codesentinel.storage.blob_storage import create_blob_service_client
+from codesentinel.github.auth import create_installation_token
+from codesentinel.sync.repository_sync import sync_repository_to_blob
 
 
 load_dotenv()

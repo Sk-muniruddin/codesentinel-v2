@@ -1,7 +1,7 @@
 from agents import Runner
 
-from codesentinel.agent import code_sentinel_agent
-from codesentinel.model_client import (
+from codesentinel.review.agent import code_sentinel_agent
+from codesentinel.review.model_client import (
     configure_azure_openai_client,
 )
 

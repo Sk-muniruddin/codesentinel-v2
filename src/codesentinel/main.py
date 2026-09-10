@@ -1,27 +1,10 @@
-import os
-
-from dotenv import load_dotenv
-from azure.ai.projects import AIProjectClient
-from azure.identity import DefaultAzureCredential
-
-from codesentinel.foundry_iq import retrieve_repository_context
-from codesentinel.reviewer import review_code
-
-
-load_dotenv()
-
-PROJECT_ENDPOINT = os.environ["AZURE_AI_PROJECT_ENDPOINT"]
-MODEL_DEPLOYMENT = os.environ["MODEL_DEPLOYMENT"]
+from codesentinel.retrieve.foundry_iq import (
+    retrieve_repository_context,
+)
+from codesentinel.review.runner import run_code_review
 
 
 def main():
-    project = AIProjectClient(
-        endpoint=PROJECT_ENDPOINT,
-        credential=DefaultAzureCredential(),
-    )
-
-    openai = project.get_openai_client()
-
     code = """
 def divide(a, b):
     return a / b
@@ -44,11 +27,38 @@ def divide(a, b):
     print("Repository Context:")
     print(repository_context)
 
-    review = review_code(
-        client=openai,
-        model=MODEL_DEPLOYMENT,
-        code=code,
-        repository_context=repository_context,
+    review_input = f"""
+Review the following pull request using the repository context.
+
+====================
+PULL REQUEST DIFF
+====================
+
+{code}
+
+====================
+REPOSITORY CONTEXT
+====================
+
+{repository_context}
+
+====================
+REVIEW REQUIREMENTS
+====================
+
+Identify only meaningful issues involving:
+- correctness
+- error handling
+- security
+- maintainability
+
+Do not report harmless style changes.
+"""
+
+    import asyncio
+
+    review = asyncio.run(
+        run_code_review(review_input)
     )
 
     print("\nCode Review:")

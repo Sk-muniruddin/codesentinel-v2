@@ -6,6 +6,8 @@ from azure.search.documents.indexes.models import (
     AzureOpenAIEmbeddingSkill,
     InputFieldMappingEntry,
     OutputFieldMappingEntry,
+    SearchIndexerIndexProjection,
+    SearchIndexerIndexProjectionSelector,
     SearchIndexerSkillset,
     SplitSkill,
 )
@@ -16,6 +18,8 @@ load_dotenv()
 
 
 SKILLSET_NAME = "codesentinel-repository-skillset"
+
+INDEX_NAME = "codesentinel-repository-index"
 
 EMBEDDING_MODEL_NAME = "text-embedding-3-small"
 EMBEDDING_DIMENSIONS = 1536
@@ -81,6 +85,37 @@ def create_repository_skillset() -> SearchIndexerSkillset:
         ],
     )
 
+    projection = SearchIndexerIndexProjection(
+        selectors=[
+            SearchIndexerIndexProjectionSelector(
+                target_index_name=INDEX_NAME,
+                parent_key_field_name="parent_id",
+                source_context="/document/chunks/*",
+                mappings=[
+                    InputFieldMappingEntry(
+                        name="content",
+                        source="/document/chunks/*",
+                    ),
+                    InputFieldMappingEntry(
+                        name="content_vector",
+                        source="/document/chunks/*/content_vector",
+                    ),
+                    InputFieldMappingEntry(
+                        name="file_path",
+                        source="/document/metadata_storage_path",
+                    ),
+                    InputFieldMappingEntry(
+                        name="file_name",
+                        source="/document/metadata_storage_name",
+                    ),
+                ],
+            )
+        ],
+        parameters={
+            "projectionMode": "skipIndexingParentDocuments",
+        },
+    )
+
     return SearchIndexerSkillset(
         name=SKILLSET_NAME,
         description=(
@@ -91,6 +126,7 @@ def create_repository_skillset() -> SearchIndexerSkillset:
             split_skill,
             embedding_skill,
         ],
+        index_projection=projection,
     )
 
 
@@ -103,7 +139,7 @@ def create_or_update_repository_skillset() -> None:
 
     print(
         f"Search skillset '{result.name}' "
-        "created successfully."
+        "updated successfully."
     )
 
 

@@ -2,7 +2,7 @@ import os
 
 from dotenv import load_dotenv
 
-from codesentinel.github_auth import create_installation_token
+from codesentinel.github.auth import create_installation_token
 
 
 load_dotenv()

@@ -13,7 +13,11 @@ def create_app_jwt() -> str:
     app_id = os.environ["GITHUB_APP_ID"]
     private_key_path = os.environ["GITHUB_PRIVATE_KEY_PATH"]
 
-    private_key = Path(private_key_path).read_text()
+    project_root = Path(__file__).resolve().parents[3]
+
+    private_key = (
+        project_root / private_key_path
+    ).read_text()
 
     now = int(time.time())
 

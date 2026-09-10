@@ -1,20 +1,20 @@
 from fastapi import FastAPI, Request
 from dotenv import load_dotenv
 
-from codesentinel.blob_storage import create_blob_service_client
-from codesentinel.foundry_iq import retrieve_repository_context
-from codesentinel.github_models import (
+from codesentinel.storage.blob_storage import create_blob_service_client
+from codesentinel.retrieve.foundry_iq import retrieve_repository_context
+from codesentinel.github.models import (
     PullRequestInfo,
     RepositoryPushInfo,
 )
-from codesentinel.github_auth import create_installation_token
-from codesentinel.github_client import get_pull_request_diff
-from codesentinel.repository_sync import (
+from codesentinel.github.auth import create_installation_token
+from codesentinel.github.client import get_pull_request_diff
+from codesentinel.sync.repository_sync import (
     delete_repository_files,
     sync_repository_to_blob,
     update_repository_files,
 )
-from codesentinel.runner import run_code_review
+from codesentinel.review.runner import run_code_review
 
 
 load_dotenv()

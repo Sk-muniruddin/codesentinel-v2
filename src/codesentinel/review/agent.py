@@ -3,7 +3,7 @@ import os
 from agents import Agent
 from dotenv import load_dotenv
 
-from codesentinel.models import CodeReview
+from codesentinel.review.models import CodeReview
 
 
 load_dotenv()
