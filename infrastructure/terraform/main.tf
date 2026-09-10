@@ -51,6 +51,8 @@ resource "azurerm_search_service" "codesentinel" {
 
   semantic_search_sku = "standard"
 
+  local_authentication_enabled = false
+
   identity {
     type = "SystemAssigned"
   }
@@ -62,4 +64,10 @@ resource "azurerm_role_assignment" "search_blob_reader" {
   scope                = azurerm_storage_account.codesentinel.id
   role_definition_name = "Storage Blob Data Reader"
   principal_id         = azurerm_search_service.codesentinel.identity[0].principal_id
+}
+
+resource "azurerm_role_assignment" "search_service_contributor" {
+  scope                = azurerm_search_service.codesentinel.id
+  role_definition_name = "Search Service Contributor"
+  principal_id         = var.terraform_deployer_object_id
 }

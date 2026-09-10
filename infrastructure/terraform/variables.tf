@@ -40,6 +40,20 @@ variable "search_service_name" {
   }
 }
 
+variable "terraform_deployer_object_id" {
+  description = "Object ID of the Azure identity that manages Azure AI Search data-plane resources."
+  type        = string
+
+  validation {
+    condition = can(regex(
+      "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+      var.terraform_deployer_object_id
+    ))
+
+    error_message = "terraform_deployer_object_id must be a valid Azure Entra object ID."
+  }
+}
+
 variable "environment" {
   description = "Deployment environment."
   type        = string
