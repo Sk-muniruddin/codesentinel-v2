@@ -10,6 +10,7 @@ dependencies = [
     "azure-storage-blob",
     "fastapi",
     "openai",
+    "openai-agents>=0.22.2",
     "pydantic",
     "pyjwt",
     "python-dotenv",
