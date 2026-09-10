@@ -1,6 +1,12 @@
 from agents import Runner
 
 from codesentinel.agent import code_sentinel_agent
+from codesentinel.model_client import (
+    configure_azure_openai_client,
+)
+
+
+configure_azure_openai_client()
 
 
 async def run_code_review(
