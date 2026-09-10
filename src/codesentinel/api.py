@@ -279,3 +279,14 @@ async def handle_pull_request_event(
         "pull_request": pr.model_dump(),
         "review": review.model_dump(),
     }
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(
+        "codesentinel.api:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+    )
